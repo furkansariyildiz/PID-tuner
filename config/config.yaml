@@ -1,0 +1,22 @@
+pid_tuner:
+  initial_Ku: 0.0 # Initial Ku value for the system. Ku = Ku + dKu 
+  initial_Tu: 0.0 # Initial Tu value for the system. Tu will be calculated via period of sine wave.
+  dKu: 0.1 # Ku increment value
+  rate: 10.0
+  step_input: 35.0 # Step input for the system. For example, if the system is a temperature control system, this value should be the temperature change in degrees Celsius.
+  initial_condition: 0.0 # Return value after step input via time constant. 
+  time_constant: 10.0 # Time constant of the system. Wait until the system reaches osscillation. If system will be reached to osscillation, tune process will be stopped.
+  status:
+    topic_name: "/temperature/status" # Ros topic name for the status.
+    topic_type: "std_msgs/String" # Ros topic type for the status.
+    message_type: "std_msgs.msg" # Message type for the status.
+    data_type: "String" # Data type of the message.
+    callback_function_name: "temperature_status_callback" # Callback function name.
+    queue_size: 10 # Queue size for the subscriber.
+    variable_name: "temperature_status" # Variable name to get the status. 'eval' or 'exec' commands will be sent to the system.
+  command:
+    topic_name: "/temperature/command"
+    topic_type: "std_msgs/String" # Ros topic type for the command.
+    message_type: "std_msgs.msg" # Message type for the command.
+    data_type: "String" # Data type of the message.
+    variable_name: "temperature_command" # Variable name to get the command. 'eval' or 'exec' commands will be sent to the system.

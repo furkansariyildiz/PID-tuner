@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import os
+import rospy 
+from std_msgs.msg import String
+
+class PIDTuner:
+  """
+  PID Tuner class for tuning PID controllers in ROS. 
+  With this class, you can get ideal Kp, Ki and Kd gains via Ziegler-Nichols method.
+
+  For Controller Types:
+  - P: Kp = 0.5 * Ku
+  - PI: Kp = 0.45 * Ku, Ti = 0.83 * Tu, Ki = 0.54 * Ku / Tu
+  - PD: Kp = 0.8 * Ku, Td = 0.125 * Tu, Kd = 0.10 * Ku * Tu
+  - PID: Kp = 0.6 * Ku, Ti = 0.5 * Tu, Td = 0.125 * Tu, Ki = 1.2 * Ku / Tu, Kd = 0.075 * Ku * Tu
+  - Pessen Integral Rule: Kp = 0.7 * Ku, Ti = 0.4 * Tu, Td = 0.15 * Tu, Ki = 1.75 * Ku / Tu, Kd = 0.105 * Ku * Tu
+  - Some Overshoot: Kp = 0.33 * Ku, Ti = 0.5 * Tu, Td = 0.33 * Tu, Ki = 0.66 * Ku / Tu, Kd = 0.11 * Ku * Tu
+  - No Overshoot: Kp = 0.2 * Ku, Ti = 0.5 * Tu, Td = 0.33 * Tu, Ki = 0.4 * Ku / Tu, Kd = 0.066 * Ku * Tu
+  """
+  def __init__(self):
+    rospy.init_node('pid_tuner', anonymous=True)
+    
+    # Parameter initialization
+    self.initial_Ku = rospy.get_param('initial_Ku', 0.0)
+    self.initial_Tu = rospy.get_param('initial_Tu', 0.0)
+    self.dKu = rospy.get_param('dKu', 0.0)
+    self.rate = rospy.get_param('rate', 10.0)
+    self.step_input = rospy.get_param('step_input', 0.0)
+    self.initial_condition = rospy.get_param('initial_condition', 0.0)
+    self.time_constant = rospy.get_param('time_constant', 0.0)
+    self.status_topic_name = rospy.get_param('status/topic_name', '/pid_tuner/status')  
+    self.status_topic_type = rospy.get_param('status/topic_type', 'std_msgs/String')
+    self.status_message_type = rospy.get_param('status/message_type', 'std_msgs.msg')
+    self.status_data_type = rospy.get_param('status/data_type', 'String')
+    self.callback_function_name = rospy.get_param('status/callback_function_name', 'callback_function')
+    self.queue_size = rospy.get_param('status/queue_size', 10)
+    self.status_variable_name = rospy.get_param('status/variable_name', 'status_variable')
+    self.command_topic_name = rospy.get_param('command/topic_name', '/pid_tuner/command')
+    self.command_topic_type = rospy.get_param('command/topic_type', 'std_msgs/String')
+    self.command_message_type = rospy.get_param('command/message_type', 'std_msgs.msg')
+    self.command_data_type = rospy.get_param('command/data_type', 'String')
+    self.command_variable_name = rospy.get_param('command/variable_name', 'command_variable')
+    
+    self.rate = rospy.Rate(self.rate)  
+
+  def run(self):
+    while not rospy.is_shutdown():
+      rospy.loginfo("PID Tuner.")
+      self.rate.sleep()
+
+if __name__ == '__main__':
+  try:
+    pid_tuner = PIDTuner()
+    pid_tuner.run()
+  except rospy.ROSInterruptException:
+    pass
+  except Exception as e:
+    rospy.logerr(f"An error occurred: {e}")
+  finally:
+    rospy.loginfo("PID Tuner node has been shut down.")
