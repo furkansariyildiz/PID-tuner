@@ -3,11 +3,27 @@ project(pid_tuner)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  message_generation
+)
+add_message_files(
+  FILES
+  MethodType.msg
+)
+
+add_service_files(
+  FILES
+  TunePID.srv
+)
+
+generate_messages(
+  DEPENDENCIES
 )
 
 catkin_package(
-  LIBRARIES pid_tuner
-  CATKIN_DEPENDS rospy
+  LIBRARIES 
+    pid_tuner
+  CATKIN_DEPENDS 
+    rospy 
 )
 
 include_directories(
@@ -25,6 +41,8 @@ catkin_install_python(PROGRAMS
 install(DIRECTORY 
   launch
   config
+  msg
+  srv
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

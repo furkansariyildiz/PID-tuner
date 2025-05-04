@@ -2,7 +2,8 @@
 
 import os
 import rospy 
-from std_msgs.msg import String
+from pid_tuner.msg import MethodType
+from pid_tuner.srv import TunePID, TunePIDRequest, TunePIDResponse
 
 class PIDTuner:
   """
@@ -22,25 +23,25 @@ class PIDTuner:
     rospy.init_node('pid_tuner', anonymous=True)
     
     # Parameter initialization
-    self.initial_Ku = rospy.get_param('initial_Ku', 0.0)
-    self.initial_Tu = rospy.get_param('initial_Tu', 0.0)
-    self.dKu = rospy.get_param('dKu', 0.0)
-    self.rate = rospy.get_param('rate', 10.0)
-    self.step_input = rospy.get_param('step_input', 0.0)
-    self.initial_condition = rospy.get_param('initial_condition', 0.0)
-    self.time_constant = rospy.get_param('time_constant', 0.0)
-    self.status_topic_name = rospy.get_param('status/topic_name', '/pid_tuner/status')  
-    self.status_topic_type = rospy.get_param('status/topic_type', 'std_msgs/String')
-    self.status_message_type = rospy.get_param('status/message_type', 'std_msgs.msg')
-    self.status_data_type = rospy.get_param('status/data_type', 'String')
-    self.callback_function_name = rospy.get_param('status/callback_function_name', 'callback_function')
-    self.queue_size = rospy.get_param('status/queue_size', 10)
-    self.status_variable_name = rospy.get_param('status/variable_name', 'status_variable')
-    self.command_topic_name = rospy.get_param('command/topic_name', '/pid_tuner/command')
-    self.command_topic_type = rospy.get_param('command/topic_type', 'std_msgs/String')
-    self.command_message_type = rospy.get_param('command/message_type', 'std_msgs.msg')
-    self.command_data_type = rospy.get_param('command/data_type', 'String')
-    self.command_variable_name = rospy.get_param('command/variable_name', 'command_variable')
+    self.initial_Ku = rospy.get_param('pid_tuner/initial_Ku', 0.0)
+    self.initial_Tu = rospy.get_param('pid_tuner/initial_Tu', 0.0)
+    self.dKu = rospy.get_param('pid_tuner/dKu', 0.0)
+    self.rate = rospy.get_param('pid_tuner/rate', 10.0)
+    self.step_input = rospy.get_param('pid_tuner/step_input', 0.0)
+    self.initial_condition = rospy.get_param('pid_tuner/initial_condition', 0.0)
+    self.time_constant = rospy.get_param('pid_tuner/time_constant', 0.0)
+    self.status_topic_name = rospy.get_param('pid_tuner/status/topic_name', '/pid_tuner/status')  
+    self.status_topic_type = rospy.get_param('pid_tuner/status/topic_type', 'std_msgs/String')
+    self.status_message_type = rospy.get_param('pid_tuner/status/message_type', 'std_msgs.msg')
+    self.status_data_type = rospy.get_param('pid_tuner/status/data_type', 'String')
+    self.callback_function_name = rospy.get_param('pid_tuner/status/callback_function_name', 'callback_function')
+    self.queue_size = rospy.get_param('pid_tuner/status/queue_size', 10)
+    self.status_variable_name = rospy.get_param('pid_tuner/status/variable_name', 'status_variable')
+    self.command_topic_name = rospy.get_param('pid_tuner/command/topic_name', '/pid_tuner/command')
+    self.command_topic_type = rospy.get_param('pid_tuner/command/topic_type', 'std_msgs/String')
+    self.command_message_type = rospy.get_param('pid_tuner/command/message_type', 'std_msgs.msg')
+    self.command_data_type = rospy.get_param('pid_tuner/command/data_type', 'String')
+    self.command_variable_name = rospy.get_param('pid_tuner/command/variable_name', 'command_variable')
     
     self.rate = rospy.Rate(self.rate)  
 
