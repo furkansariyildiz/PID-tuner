@@ -34,6 +34,7 @@ class PIDTuner:
     self.status_topic_type = rospy.get_param('pid_tuner/status/topic_type', 'std_msgs/String')
     self.status_message_type = rospy.get_param('pid_tuner/status/message_type', 'std_msgs.msg')
     self.status_data_type = rospy.get_param('pid_tuner/status/data_type', 'String')
+    self.subscriber_name = rospy.get_param('pid_tuner/status/subscriber_name', 'pid_tuner_status_subscriber')
     self.callback_function_name = rospy.get_param('pid_tuner/status/callback_function_name', 'callback_function')
     self.queue_size = rospy.get_param('pid_tuner/status/queue_size', 10)
     self.status_variable_name = rospy.get_param('pid_tuner/status/variable_name', 'status_variable')
@@ -44,6 +45,69 @@ class PIDTuner:
     self.command_variable_name = rospy.get_param('pid_tuner/command/variable_name', 'command_variable')
     
     self.rate = rospy.Rate(self.rate)  
+    self.callback_function_list = {}
+
+    self.import_libraries()
+    self.define_messages()
+    self.define_class_variables()
+    self.define_callback_function()
+    self.define_subscriber()
+
+  def import_libraries(self):
+    """
+    Import libraries for status and command topics.
+
+    For example:
+      from std_msgs.msg import String
+    """
+    exec(("from %s import %s" % (self.status_message_type, self.status_data_type)), globals())
+    exec(("from %s import %s" % (self.command_message_type, self.command_data_type)), globals())
+
+  def define_messages(self):
+    """
+    Define messages as class variables.
+
+    For example:
+      self.status_variable = String()
+      self.command_variable = String()
+    """
+    exec("%s = %s()" % (self.status_variable_name, self.status_data_type))
+    exec("%s = %s()" % (self.command_variable_name, self.command_data_type))
+
+  def define_class_variables(self):
+    """
+    Define dynamic class variables to use in the exec function.
+
+    For example:
+      self.string_variable = String()
+    """
+    exec("%s = %s" % (self.status_variable_name, self.status_data_type))
+    exec("%s = %s" % (self.command_variable_name, self.command_data_type))
+
+  def define_callback_function(self):
+    """
+    Define callback function for the status topic.
+
+    For example:
+      def callback_function(self, msg):
+        self.status_variable = msg
+    """
+    exec("def %s(self, msg): self.%s = msg" %
+         (self.callback_function_name, self.status_variable_name), globals(), self.callback_function_list)
+
+    for function in self.callback_function_list:
+      if  not hasattr(self.__class__, function):
+        setattr(self.__class__, function, self.callback_function_list[function])
+  
+  def define_subscriber(self):
+    """
+    Define subscriber for the status topic.
+
+    For example:
+      self.status_subscriber = rospy.Subscriber('/pid_tuner/status', String, self.callback_function, queue_size=10)
+    """
+    exec("self.%s = rospy.Subscriber('%s', %s, self.%s, queue_size=%d)" % 
+         (self.subscriber_name, self.status_topic_name, self.status_data_type, self.callback_function_name, self.queue_size))
 
   def run(self):
     while not rospy.is_shutdown():

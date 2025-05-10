@@ -24,6 +24,7 @@ catkin_package(
     pid_tuner
   CATKIN_DEPENDS 
     rospy 
+    message_runtime
 )
 
 include_directories(
@@ -34,7 +35,7 @@ include_directories(
 )
 
 catkin_install_python(PROGRAMS
-   scripts/pid_tuner.py
+   scripts/pid_tune.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -1,4 +1,4 @@
 <launch>
   <rosparam file="$(find pid_tuner)/config/config.yaml" command="load"/>
-  <node pkg="pid_tuner" type="pid_tuner.py" name="pid_tuner" output="screen"/>
+  <node pkg="pid_tuner" type="pid_tune.py" name="pid_tuner" output="screen"/>
 </launch>

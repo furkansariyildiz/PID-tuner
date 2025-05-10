@@ -11,6 +11,7 @@ pid_tuner:
     topic_type: "std_msgs/String" # Ros topic type for the status.
     message_type: "std_msgs.msg" # Message type for the status.
     data_type: "String" # Data type of the message.
+    subscriber_name: "temperature_status_subscriber" # Subscriber name for the status.
     callback_function_name: "temperature_status_callback" # Callback function name.
     queue_size: 10 # Queue size for the subscriber.
     variable_name: "temperature_status" # Variable name to get the status. 'eval' or 'exec' commands will be sent to the system.
