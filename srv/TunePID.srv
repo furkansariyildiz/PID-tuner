@@ -1,3 +1,5 @@
 pid_tuner/MethodType method
 ---
-bool success
+float64 Kp
+float64 Ki
+float64 Kd

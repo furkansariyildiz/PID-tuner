@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-import os
-import rospy 
 from pid_tuner.msg import MethodType
 from pid_tuner.srv import TunePID, TunePIDRequest, TunePIDResponse
+import rospy 
 
 class PIDTuner:
   """
@@ -44,14 +43,99 @@ class PIDTuner:
     self.command_data_type = rospy.get_param('pid_tuner/command/data_type', 'String')
     self.command_variable_name = rospy.get_param('pid_tuner/command/variable_name', 'command_variable')
     
+    # Service
+    self.pid_tuner_service = rospy.Service('tune_pid', TunePID, self.tune_pid_service_advertiser)
+
+    # Class variables
     self.rate = rospy.Rate(self.rate)  
     self.callback_function_list = {}
+    self.method_type = None
+    self.Ku = 0.0
+    self.Tu = 0.0
+    self.Kp = 0.0
+    self.Ki = 0.0
+    self.Kd = 0.0
+    self.Ti = 0.0
+    self.Td = 0.0
 
+    # Dynamic functions via exec()
     self.import_libraries()
     self.define_messages()
     self.define_class_variables()
     self.define_callback_function()
     self.define_subscriber()
+
+    # Start the PID tuning process
+    self.run()
+
+  def tune_pid_service_advertiser(self, req: TunePIDRequest):
+    """
+    Service callback function for tuning PID controller.
+
+    :param req: Request object containing the method type and parameters.
+    :return: Response object with the tuned PID gains.
+    """
+    self.method_type = req.method.method_type
+    response = TunePIDResponse()
+    self.start_tune()
+    
+    try:
+      if self.method_type == MethodType.P:
+        self.Kp = 0.5 * self.Ku
+        self.Ki = 0.0
+        self.Kd = 0.0
+      elif self.method_type == MethodType.PI:
+        self.Kp = 0.45 * self.Ku
+        self.Ti = 0.83 * self.Tu
+        self.Ki = 0.54 * self.Ku / self.Tu
+        self.Kd = 0.0
+      elif self.method_type == MethodType.PD:
+        self.Kp = 0.8 * self.Ku
+        self.Td = 0.125 * self.Tu
+        self.Kd = 0.10 * self.Ku * self.Tu
+        self.Ki = 0.0
+      elif self.method_type == MethodType.PID:
+        self.Kp = 0.6 * self.Ku
+        self.Ti = 0.5 * self.Tu
+        self.Td = 0.125 * self.Tu
+        self.Ki = 1.2 * self.Ku / self.Tu
+        self.Kd = 0.075 * self.Ku * self.Tu
+      elif self.method_type == MethodType.PESSEN_INTEGRAL:
+        self.Kp = 0.7 * self.Ku
+        self.Ti = 0.4 * self.Tu
+        self.Td = 0.15 * self.Tu
+        self.Ki = 1.75 * self.Ku / self.Tu
+        self.Kd = 0.105 * self.Ku * self.Tu
+      elif self.method_type == MethodType.SOME_OVERSHOOT:
+        self.Kp = 0.33 * self.Ku
+        self.Ti = 0.5 * self.Tu
+        self.Td = 0.33 * self.Tu
+        self.Ki = 0.66 * self.Ku / self.Tu
+        self.Kd = 0.11 * self.Ku * self.Tu
+      elif self.method_type == MethodType.NO_OVERSHOOT:
+        self.Kp = 0.2 * self.Ku
+        self.Ti = 0.5 * self.Tu
+        self.Td = 0.33 * self.Tu
+        self.Ki = 0.4 * self.Ku / self.Tu
+        self.Kd = 0.066 * self.Ku * self.Tu
+      else:
+        rospy.logwarn("Invalid method type. Please choose a valid method.")
+
+      response.Kp = self.Kp
+      response.Ki = self.Ki
+      response.Kd = self.Kd
+    except Exception as e:
+      rospy.logerr(f"Error in PID tuning: {e}")
+
+    self.Ku = self.initial_Ku
+    self.Tu = self.initial_Tu
+    self.Kp = 0.0
+    self.Ki = 0.0
+    self.Kd = 0.0
+    self.Ti = 0.0
+    self.Td = 0.0
+
+    return response
 
   def import_libraries(self):
     """
@@ -109,15 +193,16 @@ class PIDTuner:
     exec("self.%s = rospy.Subscriber('%s', %s, self.%s, queue_size=%d)" % 
          (self.subscriber_name, self.status_topic_name, self.status_data_type, self.callback_function_name, self.queue_size))
 
+  def start_tune(self):
+    pass
+
   def run(self):
     while not rospy.is_shutdown():
-      rospy.loginfo("PID Tuner.")
       self.rate.sleep()
 
 if __name__ == '__main__':
   try:
     pid_tuner = PIDTuner()
-    pid_tuner.run()
   except rospy.ROSInterruptException:
     pass
   except Exception as e:
