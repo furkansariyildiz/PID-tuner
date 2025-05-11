@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from first_order import FirstOrder
 from pid import PID
 from pid_tuner.msg import MethodType
 from pid_tuner.srv import TunePID, TunePIDRequest, TunePIDResponse
@@ -47,16 +48,23 @@ class PIDTuner:
     self.command_message = rospy.get_param('pid_tuner/command/message', '.data')
     self.command_publisher_name = rospy.get_param('pid_tuner/command/publisher_name', 'pid_tuner_command_publisher')
     self.command_variable_name = rospy.get_param('pid_tuner/command/variable_name', 'command_variable')
-    
+    self.use_sim = rospy.get_param('pid_tuner/sim/use_sim', False)
+    self.system_order = rospy.get_param('pid_tuner/sim/system_order', 1)
+    self.gain_of_system = rospy.get_param('pid_tuner/sim/K', 0.95)
+    self.time_constant_of_system = rospy.get_param('pid_tuner/sim/T', 0.5)
+    self.dead_time_of_system = rospy.get_param('pid_tuner/sim/Td', 0.0)
+
     # Service
     self.pid_tuner_service = rospy.Service('tune_pid', TunePID, self.tune_pid_service_advertiser)
 
     # Class variables
+    self.first_order_system = FirstOrder(0.95, 0.2, 0.0)
     self.pid = PID()
     self.rate = rospy.Rate(self.rate)  
     self.sleep_time_after_reset = rospy.Duration(self.sleep_time_after_reset)
     self.callback_function_list = {}
     self.method_type = None
+    self.status_array = []
     self.Ku = 0.0
     self.Tu = 0.0
     self.Kp = 0.0
@@ -237,8 +245,10 @@ class PIDTuner:
         getattr(self, self.command_publisher_name).publish(getattr(self, self.command_variable_name))
         rospy.sleep(self.sleep_time_after_reset.to_sec())
         rospy.loginfo(f"Ku: {self.Ku}, Tu: {self.Tu}")
+        self.status_array = []
       else:
         dt = current_time - previous_time
+        self.status_array.append(getattr(getattr(self, self.status_variable_name), self.status_message))
         error = self.step_input - getattr(getattr(self, self.status_variable_name), self.status_message)
         control_input = self.pid.pid_output(error, dt)
         setattr(getattr(self, self.command_variable_name), self.command_message, control_input)

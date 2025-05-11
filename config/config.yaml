@@ -25,3 +25,9 @@ pid_tuner:
     message: "data" # Message data for command. String().data
     publisher_name: "temperature_command_publisher" # Publisher name for the command.
     variable_name: "temperature_command" # Variable name to get the command. 'eval' or 'exec' commands will be sent to the system.
+  sim:
+    use_sim: true # Use simulation or not. 
+    system_order: 1 # 1: First order system, 2: Second order system
+    K: 0.95 # Gain of the system.
+    T: 0.5 # Time constant of the system.
+    Td: 0.0 # Dead time of the system.

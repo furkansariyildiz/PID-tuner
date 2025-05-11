@@ -35,6 +35,8 @@ include_directories(
 )
 
 catkin_install_python(PROGRAMS
+   scripts/first_order.py
+   scripts/second_order.py
    scripts/pid_tune.py
    scripts/pid.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
