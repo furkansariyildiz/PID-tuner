@@ -27,6 +27,7 @@ class PIDTuner:
     self.initial_Tu = rospy.get_param('pid_tuner/initial_Tu', 0.0)
     self.dKu = rospy.get_param('pid_tuner/dKu', 0.0)
     self.rate = rospy.get_param('pid_tuner/rate', 10.0)
+    self.sleep_time_after_reset = rospy.get_param('pid_tuner/sleep_time_after_reset', 10.0)
     self.step_input = rospy.get_param('pid_tuner/step_input', 0.0)
     self.initial_condition = rospy.get_param('pid_tuner/initial_condition', 0.0)
     self.time_constant = rospy.get_param('pid_tuner/time_constant', 0.0)
@@ -53,6 +54,7 @@ class PIDTuner:
     # Class variables
     self.pid = PID()
     self.rate = rospy.Rate(self.rate)  
+    self.sleep_time_after_reset = rospy.Duration(self.sleep_time_after_reset)
     self.callback_function_list = {}
     self.method_type = None
     self.Ku = 0.0
@@ -211,6 +213,10 @@ class PIDTuner:
          (self.command_publisher_name, self.command_topic_name, self.command_data_type, self.queue_size))
 
   def start_tune(self):
+    """
+    Method to start the PID tuning process.
+    This method will be called when the service is called.
+    """
     initial_time = rospy.get_time()
     current_time = initial_time
     previous_time = initial_time
@@ -226,15 +232,19 @@ class PIDTuner:
         self.Ku += self.dKu
         initial_time = current_time
         self.pid.set_pid_gains(self.Ku, 0.0, 0.0)
+        self.pid.reset()
+        setattr(getattr(self, self.command_variable_name), self.command_message, self.initial_condition)
+        getattr(self, self.command_publisher_name).publish(getattr(self, self.command_variable_name))
+        rospy.sleep(self.sleep_time_after_reset.to_sec())
         rospy.loginfo(f"Ku: {self.Ku}, Tu: {self.Tu}")
-      
-      dt = current_time - previous_time
-      error = self.step_input - getattr(getattr(self, self.status_variable_name), self.status_message)
-      control_input = self.pid.pid_output(0.0, dt)
-      setattr(getattr(self, self.command_variable_name), self.command_message, control_input)
-      getattr(self, self.command_publisher_name).publish(getattr(self, self.command_variable_name))      
-      previous_time = current_time
-      self.rate.sleep()
+      else:
+        dt = current_time - previous_time
+        error = self.step_input - getattr(getattr(self, self.status_variable_name), self.status_message)
+        control_input = self.pid.pid_output(error, dt)
+        setattr(getattr(self, self.command_variable_name), self.command_message, control_input)
+        getattr(self, self.command_publisher_name).publish(getattr(self, self.command_variable_name))      
+        previous_time = current_time
+        self.rate.sleep()
 
 if __name__ == '__main__':
   try:

@@ -2,7 +2,8 @@ pid_tuner:
   initial_Ku: 0.0 # Initial Ku value for the system. Ku = Ku + dKu 
   initial_Tu: 0.0 # Initial Tu value for the system. Tu will be calculated via period of sine wave.
   dKu: 0.1 # Ku increment value
-  rate: 10.0
+  rate: 10.0 # Rate of the tune loop.
+  sleep_time_after_reset: 5.0 # Time after reset process. With this parameter, system will be reset and wait until the system reaches to steady state.
   step_input: 35.0 # Step input for the system. For example, if the system is a temperature control system, this value should be the temperature change in degrees Celsius.
   initial_condition: 0.0 # Return value after step input via time constant. 
   time_constant: 10.0 # Time constant of the system. Wait until the system reaches osscillation. If system will be reached to osscillation, tune process will be stopped.
