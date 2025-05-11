@@ -36,6 +36,7 @@ include_directories(
 
 catkin_install_python(PROGRAMS
    scripts/pid_tune.py
+   scripts/pid.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -44,6 +45,7 @@ install(DIRECTORY
   config
   msg
   srv
+  scripts
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

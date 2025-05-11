@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from pid import PID
 from pid_tuner.msg import MethodType
 from pid_tuner.srv import TunePID, TunePIDRequest, TunePIDResponse
 import rospy 
@@ -33,7 +34,8 @@ class PIDTuner:
     self.status_topic_type = rospy.get_param('pid_tuner/status/topic_type', 'std_msgs/String')
     self.status_message_type = rospy.get_param('pid_tuner/status/message_type', 'std_msgs.msg')
     self.status_data_type = rospy.get_param('pid_tuner/status/data_type', 'String')
-    self.subscriber_name = rospy.get_param('pid_tuner/status/subscriber_name', 'pid_tuner_status_subscriber')
+    self.status_message = rospy.get_param('pid_tuner/status/message', '.data')
+    self.status_subscriber_name = rospy.get_param('pid_tuner/status/subscriber_name', 'pid_tuner_status_subscriber')
     self.callback_function_name = rospy.get_param('pid_tuner/status/callback_function_name', 'callback_function')
     self.queue_size = rospy.get_param('pid_tuner/status/queue_size', 10)
     self.status_variable_name = rospy.get_param('pid_tuner/status/variable_name', 'status_variable')
@@ -41,12 +43,15 @@ class PIDTuner:
     self.command_topic_type = rospy.get_param('pid_tuner/command/topic_type', 'std_msgs/String')
     self.command_message_type = rospy.get_param('pid_tuner/command/message_type', 'std_msgs.msg')
     self.command_data_type = rospy.get_param('pid_tuner/command/data_type', 'String')
+    self.command_message = rospy.get_param('pid_tuner/command/message', '.data')
+    self.command_publisher_name = rospy.get_param('pid_tuner/command/publisher_name', 'pid_tuner_command_publisher')
     self.command_variable_name = rospy.get_param('pid_tuner/command/variable_name', 'command_variable')
     
     # Service
     self.pid_tuner_service = rospy.Service('tune_pid', TunePID, self.tune_pid_service_advertiser)
 
     # Class variables
+    self.pid = PID()
     self.rate = rospy.Rate(self.rate)  
     self.callback_function_list = {}
     self.method_type = None
@@ -64,22 +69,24 @@ class PIDTuner:
     self.define_class_variables()
     self.define_callback_function()
     self.define_subscriber()
-
-    # Start the PID tuning process
-    self.run()
+    self.define_publisher()
+    
+    # Initialize dynamic variables
+    exec("self.%s = %s()" % (self.status_variable_name, self.status_data_type))
+    exec("self.%s = %s()" % (self.command_variable_name, self.command_data_type))
 
   def tune_pid_service_advertiser(self, req: TunePIDRequest):
     """
     Service callback function for tuning PID controller.
 
     :param req: Request object containing the method type and parameters.
-    :return: Response object with the tuned PID gains.
+    :return resp: Response object with the tuned PID gains.
     """
     self.method_type = req.method.method_type
     response = TunePIDResponse()
-    self.start_tune()
     
     try:
+      self.start_tune()
       if self.method_type == MethodType.P:
         self.Kp = 0.5 * self.Ku
         self.Ki = 0.0
@@ -191,18 +198,48 @@ class PIDTuner:
       self.status_subscriber = rospy.Subscriber('/pid_tuner/status', String, self.callback_function, queue_size=10)
     """
     exec("self.%s = rospy.Subscriber('%s', %s, self.%s, queue_size=%d)" % 
-         (self.subscriber_name, self.status_topic_name, self.status_data_type, self.callback_function_name, self.queue_size))
+         (self.status_subscriber_name, self.status_topic_name, self.status_data_type, self.callback_function_name, self.queue_size))
+
+  def define_publisher(self):
+    """
+    Define publisher for the command topic.
+
+    For example:
+      self.command_publisher = rospy.Publisher('/pid_tuner/command', String, queue_size=10)
+    """
+    exec("self.%s = rospy.Publisher('%s', %s, queue_size=%d)" % 
+         (self.command_publisher_name, self.command_topic_name, self.command_data_type, self.queue_size))
 
   def start_tune(self):
-    pass
+    initial_time = rospy.get_time()
+    current_time = initial_time
+    previous_time = initial_time
+    self.Ku = self.initial_Ku
+    self.Tu = self.initial_Tu
+    self.pid.set_pid_gains(self.Ku, 0.0, 0.0)
 
-  def run(self):
     while not rospy.is_shutdown():
+      current_time = rospy.get_time()
+      elapsed_time = current_time - initial_time
+
+      if elapsed_time >= self.time_constant:
+        self.Ku += self.dKu
+        initial_time = current_time
+        self.pid.set_pid_gains(self.Ku, 0.0, 0.0)
+        rospy.loginfo(f"Ku: {self.Ku}, Tu: {self.Tu}")
+      
+      dt = current_time - previous_time
+      error = self.step_input - getattr(getattr(self, self.status_variable_name), self.status_message)
+      control_input = self.pid.pid_output(0.0, dt)
+      setattr(getattr(self, self.command_variable_name), self.command_message, control_input)
+      getattr(self, self.command_publisher_name).publish(getattr(self, self.command_variable_name))      
+      previous_time = current_time
       self.rate.sleep()
 
 if __name__ == '__main__':
   try:
     pid_tuner = PIDTuner()
+    rospy.spin()
   except rospy.ROSInterruptException:
     pass
   except Exception as e:
